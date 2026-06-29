@@ -21,49 +21,53 @@ import Mathlib.Order.Interval.Finset.SuccPred
 import Mathlib.Order.Interval.Finset.Nat
 
 
-def prime_gen (n : ℕ) (hn : 2 ≤ n) : ℕ :=
+def primeGenerator (n : ℕ) (hn : 2 ≤ n) : ℕ :=
   let r : ℕ := Nat.factorial (n - 1) % n
   let q : ℚ := (r : ℚ) / (n - 1)
-  (Nat.floor q) * (n - 1) + 2
+  (Nat.floor q) * (n - 2) + 2
 
 open Int
 
 -- If we're working mod p, the only numbers that are their
 -- own inverses are ± 1
 lemma A {p : ℕ} (hp : p.Prime) (x : ℤ) :
-  x ^ (2 : ℕ) ≡ 1 [ZMOD p] →
-  x ≡ -1 [ZMOD p] ∨ x ≡ 1 [ZMOD p] := by
-  intro h
-  have hdivide : (p : ℤ) ∣ x ^ (2 : ℕ) - 1 := by
-    rw [Int.modEq_iff_dvd] at h
+    x ^ (2 : ℕ) ≡ 1 [ZMOD p] →
+    x ≡ -1 [ZMOD p] ∨ x ≡ 1 [ZMOD p] := by
+  intro H
+  have Hdivides : (p : ℤ) ∣ x ^ (2 : ℕ) - 1 := by
+    rw [Int.modEq_iff_dvd] at H
     apply dvd_neg.mp
     ring_nf
-    exact h
-  -- p | (x + 1) (x - 1)
-  have hfactor : (p : ℤ) ∣ (x + 1) * (x - 1) := by
+    exact H
+
+  have Hfactored : (p : ℤ) ∣ (x + 1) * (x - 1) := by
     ring_nf
     rw [add_comm]
     rw [Int.add_neg_one]
-    exact hdivide
-  clear hdivide
+    exact Hdivides
+
+  clear Hdivides
+
   -- since prime p, p | x + 1 or p | x - 1
-  have hprime : (p : ℤ) ∣ x + 1 ∨ (p : ℤ) ∣ x - 1 := by
-    have hp' : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp
-    exact hp'.dvd_or_dvd hfactor
-  cases hprime with
-  | inl hplus1 =>
+  have Hprime : (p : ℤ) ∣ x + 1 ∨ (p : ℤ) ∣ x - 1 := by
+    have : Prime (p : ℤ) := Nat.prime_iff_prime_int.mp hp
+    exact this.dvd_or_dvd Hfactored
+
+  cases Hprime with
+  | inl Hplus₁ =>
       left
       rw [Int.modEq_iff_dvd]
       have heq : (-1) - x = -(1 + x) := by ring
       rw [heq, dvd_neg]
       rw [add_comm]
-      exact hplus1
-  | inr hminus1 =>
+      exact Hplus₁
+  | inr Hminus₁ =>
       right
       rw [Int.modEq_iff_dvd]
       have heq : 1 - x = -(x - 1) := by ring
       rw [heq, dvd_neg]
-      exact hminus1
+      exact Hminus₁
+
 
 lemma B {p : ℕ} (hp : p.Prime) : (p - 1) ≡ -1 [ZMOD p] := by
   rw [Int.modEq_iff_dvd]
@@ -119,14 +123,14 @@ theorem Wilson (p : ℕ) : Nat.Prime p ↔ ((Nat.factorial (p - 1)) ≡ -1 [ZMOD
           rw [Finset.Ico_succ_right_eq_Icc 1 (p - 2)]
 
           rcases Nat.eq_zero_or_pos (p - 2) with h | h
-          simp [h]
-          have hset : Finset.Icc 1 (p - 2) = insert 1 (Finset.Icc 2 (p - 2)) := by
-            ext x
-            simp only [Finset.mem_Icc, Finset.mem_insert]
-            omega
-          rw [hset]
-          rw [Finset.prod_insert (by simp)]
-          simp
+          · simp [h]
+          · have hset : Finset.Icc 1 (p - 2) = insert 1 (Finset.Icc 2 (p - 2)) := by
+              ext x
+              simp only [Finset.mem_Icc, Finset.mem_insert]
+              omega
+            rw [hset]
+            rw [Finset.prod_insert (by simp)]
+            simp
 
         rw [Hunfold]
 
