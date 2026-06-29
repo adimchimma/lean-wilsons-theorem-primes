@@ -77,14 +77,30 @@ lemma B {p : ℕ} (hp : p.Prime) : (p - 1) ≡ -1 [ZMOD p] := by
   use (-1)
   ring
 
+
 -- [⇒]
 --    unfold factorial definition
 --    by lemma B, p - 1 ≡ -1 [ZMOD p]
 --    by lemma A, (p - 1) and 1 are the only numbers that are their own inverses (mod p)
 --    This means that everything in between can be written as inverse pairs
 --    This leaves us with (p - 1) (mod p) ≡ -1 (mod p)
+-- [⇐]
+--    procede by contraposition
+--    consider the case when n = 4; closes by computation
+--    consider the case when n = p² for prime p;
+--       (n - 1)! = (p² - 1)!
+--                = (p² - 1)(p² - 2) ⋯ (2p) ⋯ (p) ⋯ 3·2·1
+--          we know 2p and p are in the product because
+--              for p ≥ 3, p² - 1 ≥ 3² - 1 = 8 > 2p ≥ 2(3) = 6 > 3
+--                = 2p² · ∏ i ∈ Finset.Icc 1 (p² - 1) \ {p, 2p}, i
+--                ≡ 0 [ZMOD p²]
+--    similarly, consider the case when n = a*b for 1 < a < b < n;
+--       (n - 1)! = (n - 1) ⋯ (b) ⋯ (a) ⋯ 3·2·1
+--                = (a * b) · ∏ i ∈ Finset.Icc 1 (n - 1) \ {a, b}, i
+--                = 0 [ZMOD n]
+--     In all cases, we do not get -1 [ZMOD n] as required
 
-theorem Wilson (p : ℕ) : Nat.Prime p ↔ ((Nat.factorial (p - 1)) ≡ -1 [ZMOD p]) := by
+theorem Wilson (p : ℕ) (hp : 1 < p) : Nat.Prime p ↔ ((Nat.factorial (p - 1)) ≡ -1 [ZMOD p]) := by
   apply Iff.intro
   · intro Hprime
     have HB : p - 1 ≡ -1 [ZMOD p] := B Hprime
@@ -383,6 +399,138 @@ theorem Wilson (p : ℕ) : Nat.Prime p ↔ ((Nat.factorial (p - 1)) ≡ -1 [ZMOD
     calc ↑(p - 1).factorial
         ≡ ↑p - 1 [ZMOD ↑p] := Hreduce
       _ ≡ -1 [ZMOD ↑p] := HB
-  · intro Hfactorial
+  · contrapose
+    set n := p
+    intro Hcomposite
+    by_cases! n₄ : n = 4
+    · rw [n₄]; decide
+    · by_cases! Hp : ∃ p, Nat.Prime p ∧ n = p ^ 2
+      · obtain ⟨p, ⟨Hprime, Heq⟩⟩ := Hp
+        rw [Heq]
 
-    sorry
+        let S : Finset ℕ := Finset.Icc 1 (p ^ 2 - 1)
+
+        have Hunfold : (p ^ 2 - 1).factorial = ∏ i ∈ S, i := by
+          rw [← Finset.prod_Ico_id_eq_factorial]
+          rw [← Order.succ_eq_add_one]
+          rw [Finset.Ico_succ_right_eq_Icc 1 (p ^ 2 - 1)]
+
+        rw [Hunfold]
+
+        have Hfactor : ∏ i ∈ S, i = 2 * p ^ 2 * ∏ i ∈ S \ {p, 2 * p}, i := by
+          have Hsubset : {p , 2 * p} ⊆ S := by
+            intros m Hm
+            simp only [Finset.mem_insert, Finset.mem_singleton] at Hm
+
+            rw [show S = Finset.Icc 1 (p ^ 2 - 1) from rfl]
+            rw [Finset.mem_Icc]
+
+            have Hlowerbound : 2 ≤ p := Hprime.two_le
+            have Hle : p < 2 * p := by omega
+            have Hupperbound : 2 * p < p ^ 2 - 1 := by
+              have Hneq : p ≠ 2 := by
+                intro Heq_two
+                apply n₄
+                rw [Heq, Heq_two]
+                simp
+
+              have Hge₃ : 3 ≤ p := by omega
+
+              calc 2 * p
+                  < (3 * p) - 1 := by omega -- 2p + (p - 1)
+                _ ≤ (p * p) - 1 := by       -- 3 ≤ p
+                    apply Nat.sub_le_sub_right
+                    nlinarith
+                _ = p ^ 2 - 1 := by rw [Nat.pow_two]
+
+            omega
+
+          rw [← Finset.prod_sdiff Hsubset]
+          rw [Finset.prod_pair]
+          · ring
+          · have : 2 ≤ p := Hprime.two_le
+            omega
+
+        rw [Hfactor]
+
+        have Hreduce : (2 * p ^ 2 * ∏ i ∈ S \ {p, 2 * p}, i) ≡ 0 [ZMOD ↑(p ^ 2)] := by
+          rw [Int.modEq_zero_iff_dvd]
+          use (2 * (∏ i ∈ S \ {p, 2 * p}, i))
+          push_cast
+          ring
+
+        intro Hcontradiction
+        have Hrewrite : (0 : ℤ) ≡ -1 [ZMOD (↑(p ^ 2))] := Hreduce.symm.trans Hcontradiction
+        rw [Int.modEq_iff_dvd] at Hrewrite
+
+        norm_num at Hrewrite
+        have : (p ^ 2 : ℕ) ∣ 1 := by exact_mod_cast Hrewrite
+
+        have : p ^ 2 = 1 := Nat.dvd_one.mp this
+        have : 2 ≤ p := Hprime.two_le
+        nlinarith
+      · have Hconstruction : ∃ a b, (1 < a ∧ a < b ∧ b < n) ∧ n = a * b := by
+          use (n.minFac), (n / n.minFac)
+          refine ⟨?_, ?_⟩
+          · have HminFacPrime : (n.minFac).Prime := Nat.minFac_prime (by omega)
+            have : 2 ≤ (n.minFac) := HminFacPrime.two_le
+            refine ⟨?_, ?_, ?_⟩
+            · omega
+            · have Hle : n.minFac ≤ n / n.minFac := Nat.minFac_le_div (by omega) Hcomposite
+              have Hidentity : n.minFac * (n / n.minFac) = n := by
+                rw [Nat.mul_div_cancel_left']
+                exact Nat.minFac_dvd n
+
+              have : n.minFac ≠ n / n.minFac := by
+                intro Hcontradiction
+                apply Hp n.minFac HminFacPrime
+                rw [pow_two]
+                nth_rewrite 2 [Hcontradiction]
+                exact Hidentity.symm
+
+              omega
+            · exact Nat.div_lt_self (by omega) (by omega)
+          · rw [Nat.mul_div_cancel']
+            exact Nat.minFac_dvd n
+
+        let S : Finset ℕ := Finset.Icc 1 (n - 1)
+        have Hunfold : (n - 1).factorial = ∏ i ∈ S, i := by
+          rw [← Finset.prod_Ico_id_eq_factorial]
+          rw [← Order.succ_eq_add_one]
+          rw [Finset.Ico_succ_right_eq_Icc 1 (n - 1)]
+
+        rw [Hunfold]
+
+        obtain ⟨a, b, Hbounds, Heq⟩ := Hconstruction
+        have Hfactor : ∏ i ∈ S, i = (a * b) * ∏ i ∈ S \ {a, b}, i := by
+          have Hsubset : {a, b} ⊆ S := by
+            intro m Hm
+            simp only [Finset.mem_insert, Finset.mem_singleton] at Hm
+
+            rw [show S = Finset.Icc 1 (n - 1) from rfl]
+            rw [Finset.mem_Icc]
+            omega
+
+          rw [← Finset.prod_sdiff Hsubset]
+          rw [Finset.prod_pair]
+          · ring
+          · omega
+
+        rw [Hfactor]
+
+        have Hreduce : a * b * ∏ i ∈ S \ {a, b}, i ≡ 0 [ZMOD ↑n] := by
+          rw [Int.modEq_zero_iff_dvd]
+          rw [Heq]
+          use (∏ i ∈ S \ {a, b}, i)
+          push_cast
+          ring
+
+        intro Hcontradiction
+        have Hrewrite : (0 : ℤ) ≡ -1 [ZMOD (↑n)] := Hreduce.symm.trans Hcontradiction
+        rw [Int.modEq_iff_dvd] at Hrewrite
+
+        norm_num at Hrewrite
+        have : (n : ℕ) ∣ 1 := by exact_mod_cast Hrewrite
+
+        have : n = 1 := Nat.dvd_one.mp this
+        nlinarith
