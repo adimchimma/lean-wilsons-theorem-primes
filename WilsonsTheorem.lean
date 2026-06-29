@@ -207,7 +207,7 @@ theorem Wilson (p : ℕ) : Nat.Prime p ↔ ((Nat.factorial (p - 1)) ≡ -1 [ZMOD
 
           have Hinv : (n : ZMod p) * inv n = 1 := by
             unfold inv
-            simp
+            simp only [ZMod.natCast_val, ZMod.cast_id', id_eq]
             apply mul_inv_cancel₀
 
             rw [show S = Finset.Icc 2 (p - 2) from rfl] at Hin
@@ -291,7 +291,7 @@ theorem Wilson (p : ℕ) : Nat.Prime p ↔ ((Nat.factorial (p - 1)) ≡ -1 [ZMOD
         -- For each element t, we can extract t and t⁻¹ from the product
         -- We know that we can do this because every element has an inverse in the set
         -- Also the inverse is involutive, so we always get a pair and not a chain
-        -- We also know that no element is its own inverse so it must have an element to multiply wit
+        -- We also know that no element is its own inverse so it must have an element to multiply with
         -- Thus, we always have two arbitrary elements t and t⁻¹ with (t * t⁻¹) = 1
         -- Because we can deconstruct the set S like this ∏ i ∈ S, i must equal 1
         -- We prove this with strong induction by showing the above properties continue to hold
