@@ -5,10 +5,10 @@ A formalization of Wilson's theorem and a prime-generating function in Lean 4, u
 ## Goals
 
 1. **Wilson's Theorem** — prove the biconditional:
-   $$n \text{ is prime} \iff (n-1)! \equiv -1 \pmod{n}$$
+   $$n \text{ is prime} \iff (n - 1)! \equiv -1 \pmod{n}$$
 
-2. **Prime Generator** — define and verify the function `prime_gen`, which uses Wilson's theorem to detect primes:
-   $$\text{prime\_gen}(n) = \left\lfloor \frac{(n-1)! \bmod n}{n-1} \right\rfloor \cdot (n-1) + 2$$
+2. **Prime Generator** — define and verify the function `primeGenerator`, which uses Wilson's theorem to detect primes:
+   $$\text{primeGenerator}(n) = \left\lfloor \frac{(n - 1)! \bmod n}{n-1} \right\rfloor \cdot (n - 2) + 2$$
    This outputs the next prime after $n$ when $n$ is prime, and $2$ otherwise.
 
 ## Proof Sketch (Wilson's Theorem)
